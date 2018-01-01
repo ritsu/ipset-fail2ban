@@ -173,7 +173,7 @@ verify_options() {
     fi
     
     # Make sure jails are valid
-    tmp="$( fail2ban-client status | grep -oP '(Jail list:\s+\K).*')"
+    tmp="$( fail2ban-client status | grep -Po '(Jail list:\s+\K).*')"
     IFS=', ' read -r -a f2b_jails <<< "$tmp"
     declare -a f2b_jails_sorted
     readarray -t f2b_jails_sorted < <( for a in "${f2b_jails[@]}"; do echo "$a"; done | sort )
@@ -197,7 +197,7 @@ verify_options() {
             exit 1
         fi
     done
-    
+
     # Check ipset options
     if [[ -n ${IPSET_BLACKLIST} ]]; then
         if [[ -z ${IPSET_RESTORE_FILE} ]]; then
@@ -208,7 +208,7 @@ verify_options() {
             IPSET_TMP_BLACKLIST="${IPSET_BLACKLIST}-tmp"
         fi
     fi
-    
+
     # Check BLACKLIST_FILE
     if [[ -e ${BLACKLIST_FILE} ]]; then
         if [[ ! -f ${BLACKLIST_FILE} ]]; then
@@ -228,7 +228,7 @@ verify_options() {
             exit 1
         fi
     fi
-    
+
     # Check IPSET_RESTORE_FILE
     if [[ -n ${IPSET_RESTORE_FILE} ]]; then
         touch "${IPSET_RESTORE_FILE}" &> /dev/null
@@ -243,7 +243,7 @@ verify_options() {
 # Create blacklist
 create_blacklist() {
     ! ${QUIET} && printf "Gathering banned IP addresses...\n"
-    
+
     # Get IPs from existing BLACKLIST_FILE
     ips_all=""
     if [[ -r ${BLACKLIST_FILE} && -s ${BLACKLIST_FILE} ]]; then
@@ -251,11 +251,11 @@ create_blacklist() {
         [[ -z ${ips_all} ]] && num_file=0 || num_file="$( wc -l <<< "$ips_all" )"
         ! ${QUIET} && printf "    + ${YELLOW}${BOLD}%6s${RESET} IPs from ${YELLOW}${BOLD}%s${RESET}\n" "$num_file" "${BLACKLIST_FILE}"
     fi
-    
+
     # Get IPs
     declare -A ips_jails
     for jail in "${JAILS[@]}"; do
-        ips_jails[$jail]="$( fail2ban-client status "$jail" | grep -oP '(Banned IP list:\s+\K).*' | sed -E -e 's/[[:blank:]]+/\n/g' )"
+        ips_jails[$jail]="$( fail2ban-client status "$jail" | grep -Po '(Banned IP list:\s+\K).*' | grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' )"
         if [[ -n ${ips_all} ]]; then
             [[ -n "${ips_jails[$jail]}" ]] && printf -v ips_all "%s\n%s" "$ips_all" "${ips_jails[$jail]}"
         else
@@ -272,7 +272,7 @@ create_blacklist() {
     num_dupe="$(( num_total - num_unique ))"
     ! ${QUIET} && printf "    - ${MAGENTA}${BOLD}%6s${RESET} duplicate/private IPs removed\n" "$num_dupe"
     ! ${QUIET} && printf "    = ${GREEN}${BOLD}%6s${RESET} unique banned IPs\n\n" "$num_unique"
-    
+
     # Write to file
     if [[ -n ${BLACKLIST_FILE} ]]; then
         ! ${QUIET} && printf "Writing ${GREEN}${BOLD}%s${RESET} unique IP addresses to ${YELLOW}${BOLD}%s${RESET}...\n" "$num_unique" "${BLACKLIST_FILE}"
@@ -299,7 +299,7 @@ create_blacklist() {
         fi
         ! ${QUIET} && printf "    > OK\n"
     fi
-    
+
     # Add ipset blacklist rule to iptables
     iptables -nvL INPUT | grep -q "match-set ${IPSET_BLACKLIST}" &> /dev/null
     if [[ $? -ne 0 ]]; then
@@ -313,7 +313,7 @@ create_blacklist() {
         fi
         ! ${QUIET} && printf "    > OK\n"
     fi
-    
+
     # Create ipset blacklist restore file
     ! ${QUIET} && printf "Creating ipset restore file ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_RESTORE_FILE}"
     create_blacklist="create ${IPSET_BLACKLIST} -exist hash:net family inet hashsize ${HASHSIZE} maxelem ${MAXELEM}"
@@ -322,7 +322,7 @@ create_blacklist() {
     sed -rn -e '/^#|^$/d' -e "s/^([0-9./]+).*/add "${IPSET_TMP_BLACKLIST}" \1/p" <<< "$ips_all_unique" >> ${IPSET_RESTORE_FILE}
     printf "swap %s %s\n" "${IPSET_BLACKLIST}" "${IPSET_TMP_BLACKLIST}" >> ${IPSET_RESTORE_FILE}
     printf "destroy %s\n" "${IPSET_TMP_BLACKLIST}" >> ${IPSET_RESTORE_FILE}
-    
+
     # Restore blacklist
     restore_blacklist="ipset -file "${IPSET_RESTORE_FILE}" restore"
     ! ${QUIET} && printf "Restoring ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
@@ -333,7 +333,7 @@ create_blacklist() {
         exit 1
     fi
     ! ${QUIET} && printf "    > OK\n"
-    
+
     # Cleanup fail2ban jails
     if [[ ${CLEANUP} == true && -n ${ips_all_unique} ]]; then
         for jail in "${JAILS[@]}"; do
@@ -353,12 +353,14 @@ create_blacklist() {
         done
     fi
 
-    ! ${QUIET} && printf "Total number of IP addresses in blacklist: ${BOLD}%s${RESET}\n" "$num_unique"
+    # Verify number of ips in ipset blacklist
+    num_ipset="$( ipset list ${IPSET_BLACKLIST} | grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' | wc -l )"
+    ! ${QUIET} && printf "Total number of IP addresses in blacklist: ${BOLD}%s${RESET}\n" "$num_ipset"
 }
 
 # Show help
 show_help() {
-    docstring=$( grep -ozP "#{10,}(.|\n)*#{10,}" ${0} | sed -e 's/^# //g' -e 's/#//g' )
+    docstring=$( grep -Pzo "#{10,}(.|\n)*#{10,}" ${0} | sed -e 's/^# //g' -e 's/#//g' )
     regex="^(\s*)(-.+, --[^[:space:]]+)(.*)$"
     while IFS='' read -r line || [[ -n "$line" ]]; do
         if [[ "$line" == "DESCRIPTION"* ]]; then
