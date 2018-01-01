@@ -3,7 +3,7 @@ ipset-fail2ban
 
 A bash shell script to create an [ipset blacklist](http://ipset.netfilter.org/) from banned IP addresses from (multiple) [fail2ban jails](https://github.com/fail2ban/fail2ban), and incorporate it into an iptables rule.
 
-The motivation for this came from wanting a simple way to permanently ban IP addresses from certain fail2ban jails. In addition to avoiding arbitrarily long _bantime_ settings in fail2ban, this also cuts down on the long list of fail2ban rules that can build up in iptables, which takes advantage of ipset's use of hashtables for faster lookups.
+The motivation for this came from wanting a simple way to permanently ban IP addresses from certain fail2ban jails. In addition to avoiding arbitrarily long _bantime_ settings in fail2ban, this also cuts down on the long list of fail2ban rules that can build up in iptables and takes advantage of ipset's use of hashtables for faster lookups.
 
 This project was inspired by [ipset-blacklist](https://github.com/trick77/ipset-blacklist) and can be used alongside or together with it to incorporate publicly available blacklists. See instructions further [below](#using-ipset-fail2ban-with-public-blacklists).
 
@@ -28,8 +28,9 @@ sudo mkdir -p /etc/ipset-fail2ban && sudo wget -O /etc/ipset-fail2ban/ipset-fail
 - `JAILS` will need to be set according to your fail2ban setup
 - `BLACKLIST_FILE` by default saves to `/etc/ipset-fail2ban/ipset-fail2ban.list`
 - `IPSET_RESTORE_FILE` by default saves to `/etc/ipset-fail2ban/ipset-fail2ban.restore`
+- `CLEANUP` is set to `false` by default, so banned IPs will remain in fail2ban jails even after being added to the ipset blacklist. It is recommended to set this to `true` after you have settled on a working configuration for your system.
 
-Once your config is set, run it and check iptables for the blacklist rule.
+Once your config is set, run ipset-fail2ban with the configuration file and check iptables for the blacklist rule.
 ```
 sudo /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
 sudo iptables -L INPUT -v --line-numbers | grep match-set
@@ -64,7 +65,7 @@ EOF
 If you use additional actions, create those files accordingly.
 
 ## Using ipset-fail2ban with public blacklists
-Besides creating a blacklist from IP addresses that have been blocked by fail2ban, you can also create a blacklist from publicy available blacklists to preemptively black bad IPs. [Trick77's ipset-blacklist](https://github.com/trick77/ipset-blacklist) is an easy way to add publicly available blacklists to your local ipset blacklist. 
+Besides creating a blacklist from IP addresses from fail2ban, you can also create a blacklist from publicly available blacklists to preemptively block bad IPs. [Trick77's ipset-blacklist](https://github.com/trick77/ipset-blacklist) is an easy way to add public open source blacklists to your local ipset blacklist. 
 
 Both scripts can run separately on the same machine to generate two separate blacklists, which can be useful for keeping track of separate stats. Or, you can combine them into one blacklist by having **ipset-fail2ban** write to a local blacklist file instead of an ipset blacklist, and importing that into the **ipset-blacklist** script. To do that, first modify `ipset-fail2ban.conf`:
 ```
@@ -79,4 +80,4 @@ BLACKLISTS=(
     ...
 )
 ```
-Now simply run ipset-fail2ban _before_ running ipset-blacklist, either manually or as a cron job.
+Now simply run ipset-fail2ban _before_ running ipset-blacklist, either manually or in a cron job.

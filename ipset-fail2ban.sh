@@ -1,14 +1,14 @@
 #!/bin/bash
 
-####################################################################################################
+###################################################################################################
 # DESCRIPTION
 #     Utility for creating an ipset blacklist from the output of "fail2ban-client status <jail>"
 #     and adding the generated blacklist to iptables.
 #
 #     Configuration file is recommended for normal use. Command line options are intended mainly
-#     for creating standalone blacklists for manual inspection or other uses, or for testing. If 
-#     command line options are given after a valid configuration file, the command line options will
-#     override the value in the configuration file for that option.
+#     for creating standalone blacklists for manual inspection or other uses, or for testing. If
+#     command line options are given after a valid configuration file, the command line options
+#     will override the value in the configuration file for that option.
 #
 #     If -i <ipset_blacklist> is specified, then -r <ipset_restore_file> is required, and -t
 #     <ipset_tmp_blacklist> is also used, but a default value will be generated if it is not
@@ -21,8 +21,8 @@
 #
 # OPTIONS
 #     -b, --blacklist-file <blacklist_file>
-#             Banned IP addresses will be written to <blacklist_file>. If the file already 
-#             exists, IPs will be read from the file and added to the current list. Duplicate 
+#             Banned IP addresses will be written to <blacklist_file>. If the file already
+#             exists, IPs will be read from the file and added to the current list. Duplicate
 #             IPs will be pruned. If not specified, banned IPs will be printed to STDOUT.
 #
 #     -i, --ipset-blacklist <ipset_blacklist> 
@@ -35,13 +35,14 @@
 #             File used for storing rules needed to update ipset blacklist.
 #
 #     -t, --ipset-tmp-blacklist <ipset_tmp_blacklist>
-#             Temporary ipset blacklist for adding new blacklisted IP addresses. If not specified, 
+#             Temporary ipset blacklist for adding new blacklisted IP addresses. If not specified,
 #             defaults to <ipset_blacklist>-tmp.
 #
 #     -c, --cleanup
-#             Remove all banned IP addresses from each jail specified in <jails>. It should be 
-#             safe to set this to true as long as <blacklist_file> is written each time and saved. 
-#             For jails with a large number of banned IPs, this can take a while.
+#             Remove all banned IP addresses from each jail specified in <jails>. It should be
+#             safe to set this to true as long as <blacklist_file> is written to each time and
+#             saved. For jails with a large number of banned IPs, this can take a while the first
+#             time it is used.
 #
 #     -nc, --no-cleanup
 #             Do not remove banned IP addresses from fail2ban jails. This is the default action,
@@ -50,9 +51,9 @@
 #     -q, --quiet
 #             Do not display standard messages to STDOUT. Only error messages will still be sent.
 #
-####################################################################################################
+###################################################################################################
 
-# Global variables
+# Options
 BLACKLIST_FILE=""
 IPSET_BLACKLIST=""
 IPSET_TMP_BLACKLIST=""
@@ -60,6 +61,11 @@ IPSET_RESTORE_FILE=""
 CLEANUP=false
 QUIET=false
 declare -a JAILS=()
+
+# IPSet defaults
+IPTABLES_IPSET_POSITION=1
+HASHSIZE=16384
+MAXELEM=65536
 
 # Formatting codes
 RED=`tput setaf 1`
@@ -101,8 +107,7 @@ main() {
 get_options() {
     # Parse otpions
     while [[ $# -gt 0 ]]; do
-        key="$1"
-        case $key in
+        case $1 in
             -h|--help)
                 show_help
                 exit
@@ -170,6 +175,7 @@ verify_options() {
     # Make sure jails are valid
     tmp="$( fail2ban-client status | grep -oP '(Jail list:\s+\K).*')"
     IFS=', ' read -r -a f2b_jails <<< "$tmp"
+    declare -a f2b_jails_sorted
     readarray -t f2b_jails_sorted < <( for a in "${f2b_jails[@]}"; do echo "$a"; done | sort )
     for jail in "${JAILS[@]}"; do
         jail_exists=false
@@ -186,7 +192,7 @@ verify_options() {
                 break
             fi
         done
-        if [[ $jail_exists == false ]]; then
+        if [[ ${jail_exists} == false ]]; then
             printf "Error: Could not find jail in 'fail2ban-client status': %s\n" "$jail" >&2
             exit 1
         fi
@@ -236,14 +242,14 @@ verify_options() {
 
 # Create blacklist
 create_blacklist() {
-    ! $QUIET && printf "Gathering banned IP addresses...\n"
+    ! ${QUIET} && printf "Gathering banned IP addresses...\n"
     
     # Get IPs from existing BLACKLIST_FILE
     ips_all=""
     if [[ -r ${BLACKLIST_FILE} && -s ${BLACKLIST_FILE} ]]; then
         ips_all="$( grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' "${BLACKLIST_FILE}" )"
-        [[ -z $ips_all ]] && num_file=0 || num_file="$( wc -l <<< "$ips_all" )"
-        ! $QUIET && printf "    + ${YELLOW}${BOLD}%6s${RESET} IPs from ${YELLOW}${BOLD}%s${RESET}\n" "$num_file" "${BLACKLIST_FILE}"
+        [[ -z ${ips_all} ]] && num_file=0 || num_file="$( wc -l <<< "$ips_all" )"
+        ! ${QUIET} && printf "    + ${YELLOW}${BOLD}%6s${RESET} IPs from ${YELLOW}${BOLD}%s${RESET}\n" "$num_file" "${BLACKLIST_FILE}"
     fi
     
     # Get IPs
@@ -256,62 +262,62 @@ create_blacklist() {
             [[ -n "${ips_jails[$jail]}" ]] && ips_all="${ips_jails[$jail]}"
         fi
         [[ -z ${ips_jails[$jail]} ]] && num_jail=0 || num_jail="$( wc -l <<< "${ips_jails[$jail]}" )"
-        ! $QUIET && printf "    + ${BOLD}%6s${RESET} IPs from ${BOLD}%s${RESET}\n" "$num_jail" "$jail"
+        ! ${QUIET} && printf "    + ${BOLD}%6s${RESET} IPs from ${BOLD}%s${RESET}\n" "$num_jail" "$jail"
     done
 
-    # Remove private ips and duplicates
+    # Remove private IPs and duplicates
     ips_all_unique="$( sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' <<< "$ips_all" | sort -n | sort -mu )"
-    [[ -z $ips_all ]] && num_total=0 || num_total="$( wc -l <<< "$ips_all" )"
-    [[ -z $ips_all_unique ]] && num_unique=0 || num_unique="$( wc -l <<< "$ips_all_unique" )"
+    [[ -z ${ips_all} ]] && num_total=0 || num_total="$( wc -l <<< "$ips_all" )"
+    [[ -z ${ips_all_unique} ]] && num_unique=0 || num_unique="$( wc -l <<< "$ips_all_unique" )"
     num_dupe="$(( num_total - num_unique ))"
-    ! $QUIET && printf "    - ${MAGENTA}${BOLD}%6s${RESET} duplicate/private IPs removed\n" "$num_dupe"
-    ! $QUIET && printf "    = ${GREEN}${BOLD}%6s${RESET} unique banned IPs\n\n" "$num_unique"
+    ! ${QUIET} && printf "    - ${MAGENTA}${BOLD}%6s${RESET} duplicate/private IPs removed\n" "$num_dupe"
+    ! ${QUIET} && printf "    = ${GREEN}${BOLD}%6s${RESET} unique banned IPs\n\n" "$num_unique"
     
     # Write to file
     if [[ -n ${BLACKLIST_FILE} ]]; then
-        ! $QUIET && printf "Writing ${GREEN}${BOLD}%s${RESET} unique IP addresses to ${YELLOW}${BOLD}%s${RESET}...\n" "$num_unique" "${BLACKLIST_FILE}"
+        ! ${QUIET} && printf "Writing ${GREEN}${BOLD}%s${RESET} unique IP addresses to ${YELLOW}${BOLD}%s${RESET}...\n" "$num_unique" "${BLACKLIST_FILE}"
         printf "$ips_all_unique" > "${BLACKLIST_FILE}"
     else
-        ! $QUIET && printf "%s\n" "$ips_all_unique"
+        ! ${QUIET} && [[ -n ${ips_all_unique} ]] && printf "%s\n" "$ips_all_unique"
     fi
 
     # If ipset parameter not set, we are done
-    if [[ -z $IPSET_BLACKLIST ]]; then
+    if [[ -z ${IPSET_BLACKLIST} ]]; then
         exit
     fi
 
     # Create ipset blacklist
     ipset list -n | grep -q "${IPSET_BLACKLIST}" &> /dev/null
     if [[ $? -ne 0 ]]; then
-        create_blacklist="ipset create ${IPSET_BLACKLIST} -exist hash:net family inet hashsize ${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}"
-        ! $QUIET && printf "Creating ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
-        ! $QUIET && printf "    > %s\n" "$create_blacklist"
-        eval $create_blacklist
+        create_blacklist="ipset create ${IPSET_BLACKLIST} -exist hash:net family inet hashsize ${HASHSIZE} maxelem ${MAXELEM}"
+        ! ${QUIET} && printf "Creating ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
+        ! ${QUIET} && printf "    > %s\n" "$create_blacklist"
+        eval ${create_blacklist}
         if [[ $? -ne 0 ]]; then
             printf "Error: Unable to create blacklist %s\n" "${IPSET_BLACKLIST}"
             exit 1
         fi
-        ! $QUIET && printf "    > OK\n"
+        ! ${QUIET} && printf "    > OK\n"
     fi
     
     # Add ipset blacklist rule to iptables
     iptables -nvL INPUT | grep -q "match-set ${IPSET_BLACKLIST}" &> /dev/null
     if [[ $? -ne 0 ]]; then
         create_rule="iptables -I INPUT "${IPTABLES_IPSET_POSITION:-1}" -m set --match-set "${IPSET_BLACKLIST}" src -j DROP"
-        ! $QUIET && printf "Creating iptables rule for ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
-        ! $QUIET && printf "    > %s\n" "$create_rule"
-        eval $create_rule
+        ! ${QUIET} && printf "Creating iptables rule for ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
+        ! ${QUIET} && printf "    > %s\n" "$create_rule"
+        eval ${create_rule}
         if [[ $? -ne 0 ]]; then
             printf "Error: Unable to create iptables rule for --match-set %s\n" "${IPSET_BLACKLIST}"
             exit 1
         fi
-        ! $QUIET && printf "    > OK\n"
+        ! ${QUIET} && printf "    > OK\n"
     fi
     
     # Create ipset blacklist restore file
-    ! $QUIET && printf "Creating ipset restore file ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_RESTORE_FILE}"
-    create_blacklist="create ${IPSET_BLACKLIST} -exist hash:net family inet hashsize ${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}"
-    create_tmp_blacklist="create ${IPSET_TMP_BLACKLIST} -exist hash:net family inet hashsize ${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}"
+    ! ${QUIET} && printf "Creating ipset restore file ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_RESTORE_FILE}"
+    create_blacklist="create ${IPSET_BLACKLIST} -exist hash:net family inet hashsize ${HASHSIZE} maxelem ${MAXELEM}"
+    create_tmp_blacklist="create ${IPSET_TMP_BLACKLIST} -exist hash:net family inet hashsize ${HASHSIZE} maxelem ${MAXELEM}"
     printf "%s\n%s\n" "$create_blacklist" "$create_tmp_blacklist" > ${IPSET_RESTORE_FILE}
     sed -rn -e '/^#|^$/d' -e "s/^([0-9./]+).*/add "${IPSET_TMP_BLACKLIST}" \1/p" <<< "$ips_all_unique" >> ${IPSET_RESTORE_FILE}
     printf "swap %s %s\n" "${IPSET_BLACKLIST}" "${IPSET_TMP_BLACKLIST}" >> ${IPSET_RESTORE_FILE}
@@ -319,28 +325,27 @@ create_blacklist() {
     
     # Restore blacklist
     restore_blacklist="ipset -file "${IPSET_RESTORE_FILE}" restore"
-    ! $QUIET && printf "Restoring ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
-    ! $QUIET && printf "    > %s\n" "$restore_blacklist"
-    eval $restore_blacklist
+    ! ${QUIET} && printf "Restoring ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
+    ! ${QUIET} && printf "    > %s\n" "$restore_blacklist"
+    eval ${restore_blacklist}
     if [[ $? -ne 0 ]]; then
         printf "Error: Unable to restore blacklist from ipset restore file %s\n" "${IPSET_RESTORE_FILE}"
         exit 1
     fi
-    ! $QUIET && printf "    > OK\n"
+    ! ${QUIET} && printf "    > OK\n"
     
     # Cleanup fail2ban jails
-    # TODO: Save ip lists for each jail so you don't have to iterate over entire ip list
-    if [[ $CLEANUP == true && -n $ips_all_unique ]]; then
+    if [[ ${CLEANUP} == true && -n ${ips_all_unique} ]]; then
         for jail in "${JAILS[@]}"; do
             [[ -z ${ips_jails[$jail]} ]] && num_jail=0 || num_jail="$( wc -l <<< "${ips_jails[$jail]}" )"
-            ! $QUIET && printf "Removing %s banned IPs from fail2ban jail ${YELLOW}${BOLD}%s${RESET}...\n" "$num_jail" "$jail"
+            ! ${QUIET} && printf "Removing %s banned IPs from fail2ban jail ${YELLOW}${BOLD}%s${RESET}...\n" "$num_jail" "$jail"
             while IFS="" read -r ip || [[ -n "$ip" ]]; do
-                if [[ -z $ip ]]; then
+                if [[ -z ${ip} ]]; then
                     continue
                 fi
-                f2b_unbanip="fail2ban-client set "$jail" unbanip "$ip""
-                ! $QUIET && printf "    > %s\n" "$f2b_unbanip"
-                eval $f2b_unbanip &> /dev/null
+                f2b_unbanip="fail2ban-client set "${jail}" unbanip "${ip}""
+                ! ${QUIET} && printf "    > %s\n" "$f2b_unbanip"
+                eval ${f2b_unbanip} &> /dev/null
                 if [[ $? -ne 0 ]]; then
                     printf "Warning: Unable to unban ip %s from fail2ban jail %s\n" "$ip" "$jail"
                 fi
@@ -348,7 +353,7 @@ create_blacklist() {
         done
     fi
 
-    ! $QUIET && printf "Total number of IP addresses in blacklist: ${BOLD}%s${RESET}\n" "$num_unique"
+    ! ${QUIET} && printf "Total number of IP addresses in blacklist: ${BOLD}%s${RESET}\n" "$num_unique"
 }
 
 # Show help
