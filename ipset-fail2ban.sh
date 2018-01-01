@@ -360,7 +360,7 @@ create_blacklist() {
 
 # Show help
 show_help() {
-    docstring=$( grep -Pzo "#{10,}(.|\n)*#{10,}" ${0} | sed -e 's/^# //g' -e 's/#//g' )
+    docstring="$( grep -Pzo "(#{10,}\K)(\n#[^#]+.*)*" ${0} | sed -e 's/^# //g' -e 's/^#//g' )"
     regex="^(\s*)(-.+, --[^[:space:]]+)(.*)$"
     while IFS='' read -r line || [[ -n "$line" ]]; do
         if [[ "$line" == "DESCRIPTION"* ]]; then
