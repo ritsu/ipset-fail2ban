@@ -3,7 +3,7 @@ ipset-fail2ban
 
 A bash shell script to create an [ipset blacklist](http://ipset.netfilter.org/) from banned IP addresses from (multiple) [fail2ban jails](https://github.com/fail2ban/fail2ban), and incorporate it into an iptables rule.
 
-The motivation for this came from wanting a simple way to permanently ban IP addresses from certain fail2ban jails. In addition to avoiding arbitrarily long _bantime_ settings in fail2ban, this also cuts down on the long list of fail2ban rules that can build up in iptables and takes advantage of ipset's use of hashtables for faster lookups.
+The motivation for this came from wanting a simple way to permanently ban IP addresses from certain fail2ban jails. In addition to avoiding arbitrarily long _bantime_ settings in fail2ban, this also cuts down on the long list of fail2ban rules that can build up in iptables, and takes advantage of ipset's use of hashtables for faster lookups.
 
 This project was inspired by [ipset-blacklist](https://github.com/trick77/ipset-blacklist) and can be used alongside or together with it to incorporate publicly available blacklists. See instructions further [below](#using-ipset-fail2ban-with-public-blacklists).
 
@@ -67,7 +67,7 @@ If you use additional actions, create those files accordingly.
 ## Using ipset-fail2ban with public blacklists
 Besides creating a blacklist from IP addresses from fail2ban, you can also create a blacklist from publicly available blacklists to preemptively block bad IPs. [Trick77's ipset-blacklist](https://github.com/trick77/ipset-blacklist) is an easy way to add public open source blacklists to your local ipset blacklist. 
 
-Both scripts can run separately on the same machine to generate two separate blacklists, which can be useful for keeping track of separate stats. Or, you can combine them into one blacklist by having **ipset-fail2ban** write to a local blacklist file instead of an ipset blacklist, and importing that into the **ipset-blacklist** script. To do that, first modify `ipset-fail2ban.conf`:
+Both scripts can run independently on the same machine to generate two separate blacklists, which can be useful for keeping track of separate stats. Or, you can combine them into one blacklist by having **ipset-fail2ban** write to a local blacklist file instead of an ipset blacklist, and importing that into the **ipset-blacklist** script. To do that, first modify `ipset-fail2ban.conf`:
 ```
 BLACKLIST_FILE="/etc/ipset-fail2ban/ipset-fail2ban.list"
 IPSET_BLACKLIST=""       # Leaving this empty will prevent any of the ipset functions from running
