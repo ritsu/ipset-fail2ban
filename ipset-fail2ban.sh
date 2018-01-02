@@ -69,13 +69,13 @@ MAXELEM=65536
 
 # Formatting codes
 RED=`tput setaf 1`
-GREEN=`tput setaf 2`
-YELLOW=`tput setaf 3`
+GREEN=`tput setaf 2`     # Blacklist size
+YELLOW=`tput setaf 3`    # Files and related stats
 BLUE=`tput setaf 4`
-MAGENTA=`tput setaf 5`
-CYAN=`tput setaf 6`
+MAGENTA=`tput setaf 5`   # Duplicate or private IP count
+CYAN=`tput setaf 6`      # Blacklist name
 
-BOLD=`tput bold`
+BOLD=`tput bold`         # Jails and related stats
 RESET=`tput sgr0`
 
 # Main
@@ -296,7 +296,7 @@ create_blacklist() {
     ipset list -n | grep -q "${IPSET_BLACKLIST}" &> /dev/null
     if [[ $? -ne 0 ]]; then
         create_blacklist="ipset create ${IPSET_BLACKLIST} -exist hash:net family inet hashsize ${HASHSIZE} maxelem ${MAXELEM}"
-        ! ${QUIET} && printf "Creating ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
+        ! ${QUIET} && printf "Creating ipset blacklist ${CYAN}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
         ! ${QUIET} && printf "    > %s\n" "$create_blacklist"
         eval ${create_blacklist}
         if [[ $? -ne 0 ]]; then
@@ -310,7 +310,7 @@ create_blacklist() {
     iptables -nvL INPUT | grep -q "match-set ${IPSET_BLACKLIST}" &> /dev/null
     if [[ $? -ne 0 ]]; then
         create_rule="iptables -I INPUT "${IPTABLES_IPSET_POSITION:-1}" -m set --match-set "${IPSET_BLACKLIST}" src -j DROP"
-        ! ${QUIET} && printf "Creating iptables rule for ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
+        ! ${QUIET} && printf "Creating iptables rule for ipset blacklist ${CYAN}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
         ! ${QUIET} && printf "    > %s\n" "$create_rule"
         eval ${create_rule}
         if [[ $? -ne 0 ]]; then
@@ -331,7 +331,7 @@ create_blacklist() {
 
     # Restore blacklist
     restore_blacklist="ipset -file "${IPSET_RESTORE_FILE}" restore"
-    ! ${QUIET} && printf "Restoring ipset blacklist ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
+    ! ${QUIET} && printf "Restoring ipset blacklist ${CYAN}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
     ! ${QUIET} && printf "    > %s\n" "$restore_blacklist"
     eval ${restore_blacklist}
     if [[ $? -ne 0 ]]; then
