@@ -88,7 +88,7 @@ If you use additional actions, create those files accordingly.
 
 ## Using ipset-fail2ban with public blacklists
 Besides creating ipset blacklists from fail2ban jails, you can also create ipset blacklists from publicly available 
-blacklists with [Trick77's ipset-blacklist](https://github.com/trick77/ipset-blacklist) to preemptively block bad IPs.
+blacklists with [ipset-blacklist](https://github.com/trick77/ipset-blacklist) to preemptively block bad IPs.
 
 Both scripts can run independently on the same machine to generate two separate blacklists, which can be useful for 
 keeping track of separate stats. Or, you can combine them into one blacklist by having ipset-fail2ban write to a local 
