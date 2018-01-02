@@ -38,6 +38,7 @@ fail2ban, and then writes this list back to the blacklist file (after removing d
 Use `-h` to see a list of options.
     ```
     sudo /usr/local/sbin/ipset-fail2ban.sh -j JAIL1,JAIL2,JAIL3
+    sudo /usr/local/sbin/ipset-fail2ban.sh -h
     ```
 3. Grab the default configuration file.
     ```
@@ -56,7 +57,7 @@ system.
     sudo /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
     sudo iptables -L INPUT -v --line-numbers | grep match-set
 
-    1   5209  327K DROP     all  --  any    any     anywhere       anywhere       match-set fail2ban-blacklist src
+    1   5209  327K DROP     all  --  any    any     anywhere       anywhere       match-set blacklist-fail2ban src
     ```
 5. If you are happy with the results, remember to make the rule persistent with _iptables-persistent_ or whichever 
 script you use to manage your firewall.
@@ -91,9 +92,8 @@ EOF
 If you use additional actions, create those files accordingly.
 
 ## Using ipset-fail2ban with public blacklists
-Besides creating a blacklist from IP addresses from fail2ban, you can also create a blacklist from publicly available 
-blacklists to preemptively block bad IPs. [Trick77's ipset-blacklist](https://github.com/trick77/ipset-blacklist) is 
-an easy way to add public open source blacklists to your local ipset blacklist. 
+Besides creating an ipset blacklist from fail2ban jails, you can also create an ipset blacklist from publicly available 
+blacklists with [Trick77's ipset-blacklist](https://github.com/trick77/ipset-blacklist) to preemptively block bad IPs.
 
 Both scripts can run independently on the same machine to generate two separate blacklists, which can be useful for 
 keeping track of separate stats. Or, you can combine them into one blacklist by having ipset-fail2ban write to a local 
