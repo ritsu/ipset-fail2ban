@@ -1,16 +1,10 @@
 ipset-fail2ban
 ===============
 
-A bash shell script to create an [ipset blacklist](http://ipset.netfilter.org/) from banned IP addresses from 
-(multiple) [fail2ban jails](https://github.com/fail2ban/fail2ban), and incorporate it into an iptables rule.
-
-The motivation for this came from wanting a simple way to permanently ban IP addresses from certain fail2ban jails. 
-In addition to avoiding arbitrarily long _bantime_ settings in fail2ban, this also cuts down on the long list of 
-fail2ban rules that can build up in iptables, and takes advantage of ipset's fast hash table lookup.
-
-This project was inspired by [ipset-blacklist](https://github.com/trick77/ipset-blacklist) and can be used with it to 
-incorporate publicly available blacklists. See instructions further 
-[below](#using-ipset-fail2ban-with-public-blacklists).
+A small bash script to create an [ipset blacklist](http://ipset.netfilter.org/) from banned IP addresses from (multiple) 
+[fail2ban jails](https://github.com/fail2ban/fail2ban), and incorporate it into an iptables rule. This project was 
+inspired by [ipset-blacklist](https://github.com/trick77/ipset-blacklist), which creates ipset blacklists from 
+[published blacklists](#using-ipset-fail2ban-with-public-blacklists).
 
 ## How it works
 Banned IP addresses are fetched from fail2ban and written to an ipset blacklist. A rule is then added to iptables to 
@@ -23,7 +17,8 @@ Each time the script runs, banned IPs fetched from fail2ban are also written to 
 in subsequent runs to build the banned IP list. If you configure the script to automatically remove IPs from fail2ban, 
 make sure this blacklist file is placed somewhere safe, since it is what the script uses to remember past banned IPs 
 that have been removed from fail2ban. Since the script builds its banned IP list from both the blacklist file and 
-fail2ban, and then writes this list back to the blacklist file (after removing duplicates and private IPs), the file is effectively self updating.
+fail2ban, and then writes this list back to the blacklist file (after removing duplicates and private IPs), the file is 
+effectively self updating.
 
 ## Requirements
 - **fail2ban**: If not already installed, install with `sudo apt-get install fail2ban`
@@ -92,7 +87,7 @@ EOF
 If you use additional actions, create those files accordingly.
 
 ## Using ipset-fail2ban with public blacklists
-Besides creating an ipset blacklist from fail2ban jails, you can also create an ipset blacklist from publicly available 
+Besides creating ipset blacklists from fail2ban jails, you can also create ipset blacklists from publicly available 
 blacklists with [Trick77's ipset-blacklist](https://github.com/trick77/ipset-blacklist) to preemptively block bad IPs.
 
 Both scripts can run independently on the same machine to generate two separate blacklists, which can be useful for 
