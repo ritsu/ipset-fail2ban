@@ -261,7 +261,7 @@ create_blacklist() {
     # Get IPs
     declare -A ips_jails
     for jail in "${JAILS[@]}"; do
-        ips_jails[$jail]="$( fail2ban-client status "$jail" | grep -Po '(Banned IP list:\s+\K).*' | grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' )"
+        ips_jails[$jail]="$( fail2ban-client status "$jail" | grep -Po '(Banned IP list:\s+\K).*' | grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' | sort -n )"
         if [[ -n ${ips_all} ]]; then
             [[ -n "${ips_jails[$jail]}" ]] && printf -v ips_all "%s\n%s" "$ips_all" "${ips_jails[$jail]}"
         else
