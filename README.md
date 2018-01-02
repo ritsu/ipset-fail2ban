@@ -54,13 +54,21 @@ system.
 
     1   5209  327K DROP     all  --  any    any     anywhere       anywhere       match-set blacklist-fail2ban src
     ```
-5. If you are happy with the results, remember to make the rule persistent with _iptables-persistent_ or whichever 
-script you use to manage your firewall.
-6. Add the script to a cron job if you want it to automatically update.
+5. Add the script to a cron job if you want it to automatically update.
     ```
     sudo crontab -e
     0 0 * * * /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
     ```
+
+## Making ipset blacklist and iptables rule persistent
+Since the ipset blacklist and iptables rule are stored in memory, they are lost after a reboot. A simple way to make 
+them persistent is to edit `/etc/rc.local` to create the blacklist and add the rule at startup:
+```
+ipset restore < /etc/ipset-fail2ban/ipset-fail2ban.restore
+iptables -I INPUT 1 -m set --match-set blacklist-fail2ban src -j DROP
+```
+You could also use a firewall script of your choice and packages like _iptables-persistent_ and _netfilter-persistent_. 
+Just make sure the ipset blacklist is created before the blacklist rule is added to iptables.
 
 ## Inserting ipset-fail2ban rule above fail2ban rules in iptables
 One of the reasons we use ipset-fail2ban is to avoid the long list of fail2ban rules in iptables. Therefore, it is 
@@ -106,4 +114,4 @@ BLACKLISTS=(
     ...
 )
 ```
-Now simply run ipset-fail2ban _before_ running ipset-blacklist, either manually or in a cron job.
+Now simply run ipset-fail2ban before running ipset-blacklist, either manually or in a cron job.
