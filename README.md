@@ -30,7 +30,7 @@ fail2ban, and then writes this list back to the blacklist file (after removing d
 - **ipset**: If not already installed, install with `sudo apt-get install ipset`
 
 ## Instructions for Debian/Ubuntu based installations
-1. Grab the bash script and save it somewhere that makes sense. Make it executable.
+1. Grab the **ipset-fail2ban.sh** and save it somewhere that makes sense. Make it executable.
     ```
     sudo wget -O /usr/local/sbin/ipset-fail2ban.sh https://raw.githubusercontent.com/ritsu/ipset-fail2ban/master/ipset-fail2ban.sh && sudo chmod +x /usr/local/sbin/ipset-fail2ban.sh
     ```
@@ -43,7 +43,7 @@ Use `-h` to see a list of options.
     ```
     sudo mkdir -p /etc/ipset-fail2ban && sudo wget -O /etc/ipset-fail2ban/ipset-fail2ban.conf https://raw.githubusercontent.com/ritsu/ipset-fail2ban/master/ipset-fail2ban.conf
     ```
-4. Modify `ipset-fail2ban.conf` according to your needs. Particularly,
+4. Modify **ipset-fail2ban.conf** according to your needs. Particularly,
 - `JAILS` will need to be set according to your fail2ban setup
 - `BLACKLIST_FILE` by default saves to `/etc/ipset-fail2ban/ipset-fail2ban.list`
 - `IPSET_RESTORE_FILE` by default saves to `/etc/ipset-fail2ban/ipset-fail2ban.restore`
@@ -98,12 +98,12 @@ an easy way to add public open source blacklists to your local ipset blacklist.
 Both scripts can run independently on the same machine to generate two separate blacklists, which can be useful for 
 keeping track of separate stats. Or, you can combine them into one blacklist by having ipset-fail2ban write to a local 
 blacklist file instead of an ipset blacklist, and importing that into the ipset-blacklist script. To do that, first 
-modify `ipset-fail2ban.conf`:
+modify **ipset-fail2ban.conf**:
 ```
 BLACKLIST_FILE="/etc/ipset-fail2ban/ipset-fail2ban.list"
 IPSET_BLACKLIST=""       # Leaving this empty will prevent any of the ipset functions from running
 ```
-Then add the following line to ipset-blacklist's `ipset-blacklist.conf`:
+Then add the following line to ipset-blacklist's **ipset-blacklist.conf**:
 ```
 BLACKLISTS=(
     ...
