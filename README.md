@@ -4,7 +4,7 @@ ipset-fail2ban
 A small bash script to create an [ipset blacklist](http://ipset.netfilter.org/) from banned IP addresses from (multiple) 
 [fail2ban jails](https://github.com/fail2ban/fail2ban), and incorporate it into an iptables rule. This project was 
 inspired by [ipset-blacklist](https://github.com/trick77/ipset-blacklist), which creates ipset blacklists from 
-[published blacklists](#using-ipset-fail2ban-with-public-blacklists).
+[published blocklists](#using-ipset-fail2ban-with-published-blocklists).
 
 ## How it works
 Banned IP addresses are fetched from fail2ban and written to an ipset blacklist. A rule is then added to iptables to 
@@ -86,9 +86,10 @@ EOF
 ```
 If you use additional actions, create those files accordingly.
 
-## Using ipset-fail2ban with public blacklists
-Besides creating ipset blacklists from fail2ban jails, you can also create ipset blacklists from publicly available 
-blacklists with [ipset-blacklist](https://github.com/trick77/ipset-blacklist) to preemptively block bad IPs.
+## Using ipset-fail2ban with published blocklists
+Besides creating ipset blacklists from fail2ban jails, you can also create ipset blacklists from 
+[published blocklists](https://github.com/firehol/blocklist-ipsets) with 
+[ipset-blacklist](https://github.com/trick77/ipset-blacklist) to preemptively block bad IPs.
 
 Both scripts can run independently on the same machine to generate two separate blacklists, which can be useful for 
 keeping track of separate stats. Or, you can combine them into one blacklist by having ipset-fail2ban write to a local 
@@ -98,10 +99,9 @@ modify **ipset-fail2ban.conf**:
 BLACKLIST_FILE="/etc/ipset-fail2ban/ipset-fail2ban.list"
 IPSET_BLACKLIST=""       # Leaving this empty will prevent any of the ipset functions from running
 ```
-Then add the following line to ipset-blacklist's **ipset-blacklist.conf**:
+Then add the following line to the BLACKLISTS array in ipset-blacklist's **ipset-blacklist.conf**:
 ```
 BLACKLISTS=(
-    ...
     "file:///etc/ipset-fail2ban/ipset-fail2ban.list"
     ...
 )
