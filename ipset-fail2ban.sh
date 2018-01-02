@@ -344,7 +344,7 @@ create_blacklist() {
     if [[ ${CLEANUP} == true && -n ${ips_all_unique} ]]; then
         for jail in "${JAILS[@]}"; do
             [[ -z ${ips_jails[$jail]} ]] && num_jail=0 || num_jail="$( wc -l <<< "${ips_jails[$jail]}" )"
-            ! ${QUIET} && printf "Removing %s banned IPs from fail2ban jail ${YELLOW}${BOLD}%s${RESET}...\n" "$num_jail" "$jail"
+            ! ${QUIET} && printf "Removing ${BOLD}%s${RESET} banned IPs from fail2ban jail ${BOLD}%s${RESET}...\n" "$num_jail" "$jail"
             while IFS="" read -r ip || [[ -n "$ip" ]]; do
                 if [[ -z ${ip} ]]; then
                     continue
@@ -361,7 +361,7 @@ create_blacklist() {
 
     # Verify number of ips in ipset blacklist
     num_ipset="$( ipset list ${IPSET_BLACKLIST} | grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' | wc -l )"
-    ! ${QUIET} && printf "Total number of IP addresses in blacklist: ${BOLD}%s${RESET}\n" "$num_ipset"
+    ! ${QUIET} && printf "Total number of IP addresses in blacklist: ${GREEN}${BOLD}%s${RESET}\n" "$num_ipset"
 }
 
 # Show help
