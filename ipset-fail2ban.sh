@@ -87,7 +87,7 @@ main() {
     fi
     if [[ -f $1 && -r $1 ]]; then
         if ! source "$1"; then
-            printf "Error: Unable to load configuration file $1\n"
+            printf "Error: Unable to load configuration file $1\n" >&2
             exit 1
         fi
         shift
@@ -96,13 +96,19 @@ main() {
         get_options "$@"
     fi
 
+    # Check requirements
+    if ! which fail2ban-client ipset iptables grep sed sort wc &> /dev/null; then
+        printf "Error: Unable to find one or more of the following in PATH: fail2ban-client ipset iptables grep sed sort wc\n" >&2
+        exit 1
+    fi
+
     # Verify options
     verify_options
 
     # Create blacklist
     create_blacklist
 }
-    
+
 # Get options from positional parameters
 get_options() {
     # Parse otpions
@@ -162,16 +168,16 @@ verify_options() {
     # Make sure script has permission to run fail2ban-client
     fail2ban-client status &> /dev/null
     if [[ $? -ne 0 ]]; then
-        printf "Error: Permission denied for 'fail2ban-client status'\n"
+        printf "Error: Permission denied for 'fail2ban-client status'\n" >&2
         exit 1
     fi
-    
+
     # Jails must exist
     if [[ ${#JAILS[@]} -eq 0 ]]; then
         printf "No jails specified.\n" >&2
         exit 1
     fi
-    
+
     # Make sure jails are valid
     tmp="$( fail2ban-client status | grep -Po '(Jail list:\s+\K).*')"
     IFS=', ' read -r -a f2b_jails <<< "$tmp"
@@ -294,7 +300,7 @@ create_blacklist() {
         ! ${QUIET} && printf "    > %s\n" "$create_blacklist"
         eval ${create_blacklist}
         if [[ $? -ne 0 ]]; then
-            printf "Error: Unable to create blacklist %s\n" "${IPSET_BLACKLIST}"
+            printf "Error: Unable to create blacklist %s\n" "${IPSET_BLACKLIST}" >&2
             exit 1
         fi
         ! ${QUIET} && printf "    > OK\n"
@@ -308,7 +314,7 @@ create_blacklist() {
         ! ${QUIET} && printf "    > %s\n" "$create_rule"
         eval ${create_rule}
         if [[ $? -ne 0 ]]; then
-            printf "Error: Unable to create iptables rule for --match-set %s\n" "${IPSET_BLACKLIST}"
+            printf "Error: Unable to create iptables rule for --match-set %s\n" "${IPSET_BLACKLIST}" >&2
             exit 1
         fi
         ! ${QUIET} && printf "    > OK\n"
@@ -329,7 +335,7 @@ create_blacklist() {
     ! ${QUIET} && printf "    > %s\n" "$restore_blacklist"
     eval ${restore_blacklist}
     if [[ $? -ne 0 ]]; then
-        printf "Error: Unable to restore blacklist from ipset restore file %s\n" "${IPSET_RESTORE_FILE}"
+        printf "Error: Unable to restore blacklist from ipset restore file %s\n" "${IPSET_RESTORE_FILE}" >&2
         exit 1
     fi
     ! ${QUIET} && printf "    > OK\n"
