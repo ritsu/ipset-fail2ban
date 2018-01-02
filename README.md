@@ -47,14 +47,14 @@ Use `-h` to see a list of options.
 ipset blacklist. It is recommended to set this to `true` after you have settled on a working configuration for your 
 system.
 
-    Once your config is set, run ipset-fail2ban with the configuration file and check iptables for the blacklist rule.
+5. Once your config is set, run ipset-fail2ban with the configuration file and check iptables for the blacklist rule.
     ```
     sudo /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
     sudo iptables -L INPUT -v --line-numbers | grep match-set
 
     1   5209  327K DROP     all  --  any    any     anywhere       anywhere       match-set blacklist-fail2ban src
     ```
-5. Add the script to a cron job if you want it to automatically update.
+6. Add the script to a cron job if you want it to automatically update.
     ```
     sudo crontab -e
     0 0 * * * /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
