@@ -67,7 +67,7 @@ them persistent is to edit `/etc/rc.local` to create the blacklist and add the r
 ipset restore < /etc/ipset-fail2ban/ipset-fail2ban.restore
 iptables -I INPUT 1 -m set --match-set blacklist-fail2ban src -j DROP
 ```
-You could also use a firewall script of your choice and packages like _iptables-persistent_ and _netfilter-persistent_. 
+You could also instead use a firewall script of your choice and packages like _iptables-persistent_ and _netfilter-persistent_. 
 Just make sure the ipset blacklist is created before the blacklist rule is added to iptables.
 
 ## Inserting ipset-fail2ban rule above fail2ban rules in iptables
