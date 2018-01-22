@@ -57,6 +57,7 @@ system.
 6. Add the script to a cron job if you want it to automatically update.
     ```
     sudo crontab -e
+    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     0 0 * * * /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
     ```
 
