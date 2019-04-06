@@ -59,7 +59,7 @@ system.
     sudo crontab -e
     
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    0 0 * * * /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
+    0 0 * * * root /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
     ```
 
 ## Making ipset blacklist and iptables rule persistent
