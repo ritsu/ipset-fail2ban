@@ -54,12 +54,10 @@ system.
 
     1   5209  327K DROP     all  --  any    any     anywhere       anywhere       match-set blacklist-fail2ban src
     ```
-6. Add the script to a cron job if you want it to automatically update.
+6. Copy the following code into '/etc/cron.d/update-blacklist_fail2ban' if you want it to automatically update.
     ```
-    sudo crontab -e
-    
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    0 0 * * * /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
+    0 0 * * * root /usr/local/sbin/ipset-fail2ban.sh /etc/ipset-fail2ban/ipset-fail2ban.conf
     ```
 
 ## Making ipset blacklist and iptables rule persistent
