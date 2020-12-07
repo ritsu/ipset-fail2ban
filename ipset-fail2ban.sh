@@ -38,6 +38,18 @@
 #             Temporary ipset blacklist for adding new blacklisted IP addresses. If not specified,
 #             defaults to <ipset_blacklist>-tmp.
 #
+#     -nl, --no-log-jails
+#             Do not add comments in <blacklist_file> to log which jail each IP address came from.
+#             This is the default action, so this is generally not needed unless overriding a
+#             configuration file.
+#
+#     -l, --log-jails
+#             Add comments in <blacklist_file> to log which jail each IP address came from.
+#
+#     -nc, --no-cleanup
+#             Do not remove banned IP addresses from fail2ban jails. This is the default action,
+#             so this is generally not needed unless overriding a configuration file.
+#
 #     -c, --cleanup
 #             Remove all banned IP addresses from each jail specified in <jails>. It should be
 #             safe to set this to true as long as <blacklist_file> is written to each time and
@@ -58,6 +70,7 @@ BLACKLIST_FILE=""
 IPSET_BLACKLIST=""
 IPSET_TMP_BLACKLIST=""
 IPSET_RESTORE_FILE=""
+LOG_JAILS=false
 CLEANUP=false
 QUIET=false
 declare -a JAILS=()
@@ -111,7 +124,7 @@ main() {
 
 # Get options from positional parameters
 get_options() {
-    # Parse otpions
+    # Parse options
     while [[ $# -gt 0 ]]; do
         case $1 in
             -h|--help)
@@ -141,6 +154,14 @@ get_options() {
             -t|--ipset-tmp-blacklist)
                 IPSET_TMP_BLACKLIST="$2"
                 shift
+                shift
+                ;;
+            -l|--log-jails)
+                LOG_JAILS=true
+                shift
+                ;;
+            -nl|--no-log-jails)
+                LOG_JAILS=false
                 shift
                 ;;
             -c|--cleanup)
@@ -253,7 +274,7 @@ create_blacklist() {
     # Get IPs from existing BLACKLIST_FILE
     ips_all=""
     if [[ -r ${BLACKLIST_FILE} && -s ${BLACKLIST_FILE} ]]; then
-        ips_all="$( grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' "${BLACKLIST_FILE}" )"
+        ips_all="$( grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?(\s*#.+)?' "${BLACKLIST_FILE}" )"
         [[ -z ${ips_all} ]] && num_file=0 || num_file="$( wc -l <<< "$ips_all" )"
         ! ${QUIET} && printf "    + ${YELLOW}${BOLD}%6s${RESET} IPs from ${YELLOW}${BOLD}%s${RESET}\n" "$num_file" "${BLACKLIST_FILE}"
     fi
@@ -262,6 +283,9 @@ create_blacklist() {
     declare -A ips_jails
     for jail in "${JAILS[@]}"; do
         ips_jails[$jail]="$( fail2ban-client status "$jail" | grep -Po '(IP list:\s+\K).*' | grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' | sort -n )"
+        if [[ -n "${ips_jails[$jail]}" && $LOG_JAILS = true ]]; then
+            ips_jails[$jail]="$( awk -v jail="$jail" 'BEGIN { ORS="" } { print $0; for(i=length; i<20; i++){ print " " }; print "# "jail"\n" }' <<< "${ips_jails[$jail]}" )"
+        fi
         if [[ -n ${ips_all} ]]; then
             [[ -n "${ips_jails[$jail]}" ]] && printf -v ips_all "%s\n%s" "$ips_all" "${ips_jails[$jail]}"
         else
@@ -272,7 +296,7 @@ create_blacklist() {
     done
 
     # Remove private IPs and duplicates
-    ips_all_unique="$( sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' <<< "$ips_all" | sort -n | sort -mu )"
+    ips_all_unique="$( sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' <<< "$ips_all" | sort -n | sort -mu -k1,1 )"
     [[ -z ${ips_all} ]] && num_total=0 || num_total="$( wc -l <<< "$ips_all" )"
     [[ -z ${ips_all_unique} ]] && num_unique=0 || num_unique="$( wc -l <<< "$ips_all_unique" )"
     num_dupe="$(( num_total - num_unique ))"
@@ -346,6 +370,7 @@ create_blacklist() {
             [[ -z ${ips_jails[$jail]} ]] && num_jail=0 || num_jail="$( wc -l <<< "${ips_jails[$jail]}" )"
             ! ${QUIET} && printf "Removing ${BOLD}%s${RESET} banned IPs from fail2ban jail ${BOLD}%s${RESET}...\n" "$num_jail" "$jail"
             while IFS="" read -r ip || [[ -n "$ip" ]]; do
+                ip="$( sed -e 's/\s*#.*$//' <<< "$ip" )"
                 if [[ -z ${ip} ]]; then
                     continue
                 fi
