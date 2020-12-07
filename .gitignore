@@ -1,5 +1,3 @@
-# IntelliJ project files
-.idea
-*.iml
-out
-gen
+# vim files
+*.swp
+*.swo

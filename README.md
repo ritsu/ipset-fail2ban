@@ -43,6 +43,8 @@ Use `-h` to see a list of options.
 - `JAILS` will need to be set according to your fail2ban setup
 - `BLACKLIST_FILE` by default saves to `/etc/ipset-fail2ban/ipset-fail2ban.list`
 - `IPSET_RESTORE_FILE` by default saves to `/etc/ipset-fail2ban/ipset-fail2ban.restore`
+- `LOG_JAILS`, if set to `true`, will add an inline comment to each banned IP address in `BLACKLIST_FILE` to
+indicate which jail caused the ban. This is to `false` by default.
 - `CLEANUP` is set to `false` by default, so banned IPs will remain in fail2ban jails even after being added to the 
 ipset blacklist. It is recommended to set this to `true` after you have settled on a working configuration for your 
 system.
