@@ -73,6 +73,7 @@ IPSET_RESTORE_FILE=""
 LOG_JAILS=false
 CLEANUP=false
 QUIET=false
+DOCKER_USER_CHAIN=false
 
 declare -a JAILS=()
 
