@@ -73,6 +73,8 @@ IPSET_RESTORE_FILE=""
 LOG_JAILS=false
 CLEANUP=false
 QUIET=false
+DOCKER_USER_CHAIN=false
+
 declare -a JAILS=()
 
 # IPSet defaults
@@ -330,11 +332,11 @@ create_blacklist() {
         ! ${QUIET} && printf "    > OK\n"
     fi
 
-    # Add ipset blacklist rule to iptables
+    # Add ipset blacklist rule to iptables INPUT chain
     iptables -nvL INPUT | grep -q "match-set ${IPSET_BLACKLIST}" &> /dev/null
     if [[ $? -ne 0 ]]; then
         create_rule="iptables -I INPUT "${IPTABLES_IPSET_POSITION:-1}" -m set --match-set "${IPSET_BLACKLIST}" src -j DROP"
-        ! ${QUIET} && printf "Creating iptables rule for ipset blacklist ${CYAN}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
+        ! ${QUIET} && printf "Creating iptables rule to chain INPUT for ipset blacklist ${CYAN}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
         ! ${QUIET} && printf "    > %s\n" "$create_rule"
         eval ${create_rule}
         if [[ $? -ne 0 ]]; then
@@ -343,6 +345,23 @@ create_blacklist() {
         fi
         ! ${QUIET} && printf "    > OK\n"
     fi
+
+    # Add ipset blacklist rule to iptables DOCKER-USER chain
+    if [[ ${DOCKER_USER_CHAIN} = true ]] ; then
+        iptables -nvL DOCKER-USER | grep -q "match-set ${IPSET_BLACKLIST}" &> /dev/null
+        if [[ $? -ne 0 ]]; then
+            create_rule="iptables -I DOCKER-USER "${IPTABLES_IPSET_POSITION:-1}" -m set --match-set "${IPSET_BLACKLIST}" src -j DROP"
+            ! ${QUIET} && printf "Creating iptables rule to chain DOCKER-USER for ipset blacklist ${CYAN}${BOLD}%s${RESET}...\n" "${IPSET_BLACKLIST}"
+            ! ${QUIET} && printf "    > %s\n" "$create_rule"
+            eval ${create_rule}
+            if [[ $? -ne 0 ]]; then
+                printf "Error: Unable to create iptables rule for --match-set %s\n" "${IPSET_BLACKLIST}" >&2
+                exit 1
+            fi
+            ! ${QUIET} && printf "    > OK\n"
+        fi
+    fi
+    
 
     # Create ipset blacklist restore file
     ! ${QUIET} && printf "Creating ipset restore file ${YELLOW}${BOLD}%s${RESET}...\n" "${IPSET_RESTORE_FILE}"
